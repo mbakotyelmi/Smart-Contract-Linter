@@ -27,6 +27,14 @@ A comprehensive linting platform that analyzes Clarity smart contracts for code 
 - Bulk quality assessments
 - Efficiency for large codebases
 
+🏆 **Developer Reputation System**
+- Dynamic reputation scoring based on code quality
+- Progressive levels: Novice → Apprentice → Developer → Expert → Master
+- Achievement badges for milestones
+- Community endorsements from experienced developers
+- Streak bonuses for consistent quality
+- Reputation-based privileges and rewards
+
 ## 🚀 Quick Start
 
 ### Prerequisites
@@ -68,6 +76,18 @@ clarinet integrate
 (contract-call? .smart-contract-linter get-user-ranking 'ST1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRTPGZGM)
 ```
 
+#### 5. 🎖️ View Developer Reputation
+
+```clarity
+(contract-call? .smart-contract-linter get-developer-reputation 'ST1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRTPGZGM)
+```
+
+#### 6. 🤝 Endorse Another Developer
+
+```clarity
+(contract-call? .smart-contract-linter endorse-developer 'ST1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRTPGZGM)
+```
+
 ## 📝 Core Functions
 
 ### Public Functions
@@ -76,6 +96,8 @@ clarinet integrate
 |----------|-------------|------------|
 | `submit-contract-for-linting` | 📤 Submit contract code for analysis | `contract-code: string-ascii` |
 | `batch-lint-contracts` | 🔄 Lint multiple contracts at once | `contracts: list` |
+| `endorse-developer` | 🤝 Endorse another developer | `developer: principal` |
+| `claim-reputation-reward` | 🎁 Claim reputation-based rewards | none |
 | `add-lint-issue` | ⚠️ Add specific issues (admin only) | `lint-id, issue-index, type, severity, line, description` |
 | `update-lint-status` | 🔄 Update linting status (admin only) | `lint-id, new-status` |
 
@@ -86,6 +108,10 @@ clarinet integrate
 | `get-lint-result` | 📋 Retrieve linting results | Complete lint analysis |
 | `get-user-history` | 📊 Get user's linting history | User statistics |
 | `get-user-ranking` | 🏆 Get user's quality ranking | Ranking details |
+| `get-developer-reputation` | 🎖️ Get developer reputation data | Complete reputation profile |
+| `get-developer-badges` | 🏅 Get developer badges | Badge information |
+| `estimate-reputation-gain` | 🔮 Preview reputation gain | Potential reputation points |
+| `get-reputation-requirements` | 📋 Get reputation level thresholds | Level requirements |
 | `estimate-quality-score` | 🔍 Preview quality score | Estimated score |
 | `get-platform-stats` | 📈 Platform-wide statistics | Total lints, current metrics |
 
@@ -106,6 +132,26 @@ clarinet integrate
 - 🌐 Public functions (+15 points)
 - 📖 Code readability (+10 points)
 - ⚡ Complexity penalty (-10 points for large contracts)
+
+## 🏆 Reputation System
+
+### Reputation Levels
+- 🌱 **Novice** (0 points): Starting developers
+- 📚 **Apprentice** (100+ points): Learning the ropes
+- 💻 **Developer** (500+ points): Competent coders
+- 🎯 **Expert** (1,500+ points): Advanced practitioners
+- 👑 **Master** (3,000+ points): Elite developers
+
+### Reputation Earning
+- **Quality Scores**: 90+ (50 pts), 70-89 (30 pts), 50-69 (15 pts), <50 (5 pts)
+- **Streak Multiplier**: 2x points after 5+ consecutive submissions
+- **Community Endorsements**: +25 points (requires Developer+ level to endorse)
+- **Achievement Badges**: Special recognition for milestones
+
+### Available Badges
+- 🎯 **Perfectionist**: Score 95+ on a contract
+- 🔥 **Consistency Master**: 10+ submission streak
+- 🏅 **Dedication Legend**: 25+ submission streak
 
 ## 🔧 Development
 

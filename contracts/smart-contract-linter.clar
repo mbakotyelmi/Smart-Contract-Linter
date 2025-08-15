@@ -2,8 +2,15 @@
 (define-constant ERR-INVALID-INPUT (err u400))
 (define-constant ERR-NOT-FOUND (err u404))
 (define-constant ERR-ALREADY-EXISTS (err u409))
+(define-constant ERR-INSUFFICIENT-REPUTATION (err u403))
 
 (define-constant CONTRACT-OWNER tx-sender)
+
+(define-constant REPUTATION-NOVICE u0)
+(define-constant REPUTATION-APPRENTICE u100)
+(define-constant REPUTATION-DEVELOPER u500)
+(define-constant REPUTATION-EXPERT u1500)
+(define-constant REPUTATION-MASTER u3000)
 
 (define-data-var next-lint-id uint u1)
 (define-data-var total-lints uint u0)
@@ -47,6 +54,29 @@
 (define-map quality-thresholds
     { level: (string-ascii 20) }
     { min-score: uint, max-score: uint }
+)
+
+(define-map developer-reputation
+    { developer: principal }
+    {
+        total-reputation: uint,
+        reputation-level: (string-ascii 20),
+        badges-earned: uint,
+        streak-count: uint,
+        last-activity: uint,
+        quality-bonus: uint,
+        community-endorsements: uint
+    }
+)
+
+(define-map reputation-leaderboard
+    { rank: uint }
+    { developer: principal, reputation-points: uint }
+)
+
+(define-map developer-badges
+    { developer: principal, badge-type: (string-ascii 30) }
+    { earned-at: uint, badge-level: uint }
 )
 
 (define-private (init-quality-thresholds)
@@ -102,6 +132,78 @@
     "POOR")))
 )
 
+(define-private (get-reputation-level (total-reputation uint))
+    (if (>= total-reputation REPUTATION-MASTER) "MASTER"
+    (if (>= total-reputation REPUTATION-EXPERT) "EXPERT"
+    (if (>= total-reputation REPUTATION-DEVELOPER) "DEVELOPER"
+    (if (>= total-reputation REPUTATION-APPRENTICE) "APPRENTICE"
+    "NOVICE"))))
+)
+
+(define-private (calculate-reputation-points (quality-score uint) (streak-bonus uint))
+    (let (
+        (base-points (if (>= quality-score u90) u50
+                     (if (>= quality-score u70) u30
+                     (if (>= quality-score u50) u15
+                     u5))))
+        (streak-multiplier (if (> streak-bonus u5) u2 u1))
+    )
+    (* base-points streak-multiplier)
+    )
+)
+
+(define-private (award-badge (developer principal) (badge-type (string-ascii 30)) (level uint))
+    (map-set developer-badges 
+        { developer: developer, badge-type: badge-type } 
+        { earned-at: stacks-block-height, badge-level: level }
+    )
+)
+
+(define-private (check-and-award-badges (developer principal) (quality-score uint) (streak-count uint))
+    (begin
+        (if (>= quality-score u95)
+            (award-badge developer "PERFECTIONIST" u1)
+            true)
+        (if (>= streak-count u10)
+            (award-badge developer "CONSISTENCY_MASTER" u1)
+            true)
+        (if (>= streak-count u25)
+            (award-badge developer "DEDICATION_LEGEND" u1)
+            true)
+        true
+    )
+)
+
+(define-private (update-reputation-system (developer principal) (quality-score uint))
+    (let (
+        (current-rep (default-to 
+            { total-reputation: u0, reputation-level: "NOVICE", badges-earned: u0, 
+              streak-count: u0, last-activity: u0, quality-bonus: u0, community-endorsements: u0 }
+            (map-get? developer-reputation { developer: developer })
+        ))
+        (streak-bonus (if (< (- stacks-block-height (get last-activity current-rep)) u1000) 
+                         (+ (get streak-count current-rep) u1) u1))
+        (reputation-gained (calculate-reputation-points quality-score streak-bonus))
+        (new-total-rep (+ (get total-reputation current-rep) reputation-gained))
+        (new-level (get-reputation-level new-total-rep))
+        (quality-bonus (if (>= quality-score u80) (+ (get quality-bonus current-rep) u10) 
+                                                  (get quality-bonus current-rep)))
+    )
+    (begin
+        (map-set developer-reputation { developer: developer } {
+            total-reputation: new-total-rep,
+            reputation-level: new-level,
+            badges-earned: (get badges-earned current-rep),
+            streak-count: streak-bonus,
+            last-activity: stacks-block-height,
+            quality-bonus: quality-bonus,
+            community-endorsements: (get community-endorsements current-rep)
+        })
+        (check-and-award-badges developer quality-score streak-bonus)
+        new-total-rep
+    ))
+)
+
 (define-private (update-user-history (user principal) (lint-id uint) (quality-score uint))
     (let (
         (current-history (default-to 
@@ -150,6 +252,7 @@
         })
         
         (update-user-history tx-sender lint-id quality-score)
+        (update-reputation-system tx-sender quality-score)
         
         (var-set next-lint-id (+ lint-id u1))
         (var-set total-lints (+ (var-get total-lints) u1))
@@ -244,6 +347,88 @@
         (ok true)
         )
     )
+)
+
+(define-public (endorse-developer (developer principal))
+    (let (
+        (current-rep (default-to 
+            { total-reputation: u0, reputation-level: "NOVICE", badges-earned: u0, 
+              streak-count: u0, last-activity: u0, quality-bonus: u0, community-endorsements: u0 }
+            (map-get? developer-reputation { developer: developer })
+        ))
+        (endorser-rep (map-get? developer-reputation { developer: tx-sender }))
+    )
+    (begin
+        (asserts! (not (is-eq tx-sender developer)) ERR-INVALID-INPUT)
+        (asserts! (is-some endorser-rep) ERR-NOT-FOUND)
+        (asserts! (>= (get total-reputation (unwrap-panic endorser-rep)) REPUTATION-DEVELOPER) ERR-INSUFFICIENT-REPUTATION)
+        
+        (map-set developer-reputation { developer: developer } 
+            (merge current-rep { 
+                community-endorsements: (+ (get community-endorsements current-rep) u1),
+                total-reputation: (+ (get total-reputation current-rep) u25)
+            }))
+        (ok true)
+    ))
+)
+
+(define-read-only (get-developer-reputation (developer principal))
+    (map-get? developer-reputation { developer: developer })
+)
+
+(define-read-only (get-developer-badges (developer principal) (badge-type (string-ascii 30)))
+    (map-get? developer-badges { developer: developer, badge-type: badge-type })
+)
+
+(define-read-only (get-reputation-leaderboard (start-rank uint) (count uint))
+    (let (
+        (results (list))
+    )
+    (ok results)
+    )
+)
+
+(define-public (claim-reputation-reward)
+    (let (
+        (developer-rep (map-get? developer-reputation { developer: tx-sender }))
+    )
+    (match developer-rep
+        rep-data (begin
+            (asserts! (>= (get total-reputation rep-data) REPUTATION-EXPERT) ERR-INSUFFICIENT-REPUTATION)
+            (ok "REWARD_CLAIMED")
+        )
+        ERR-NOT-FOUND
+    ))
+)
+
+(define-read-only (estimate-reputation-gain (quality-score uint))
+    (let (
+        (current-rep (default-to 
+            { total-reputation: u0, reputation-level: "NOVICE", badges-earned: u0, 
+              streak-count: u0, last-activity: u0, quality-bonus: u0, community-endorsements: u0 }
+            (map-get? developer-reputation { developer: tx-sender })
+        ))
+        (estimated-streak (+ (get streak-count current-rep) u1))
+        (points-gained (calculate-reputation-points quality-score estimated-streak))
+    )
+    (ok {
+        current-reputation: (get total-reputation current-rep),
+        points-to-gain: points-gained,
+        new-total: (+ (get total-reputation current-rep) points-gained),
+        current-level: (get reputation-level current-rep),
+        potential-level: (get-reputation-level (+ (get total-reputation current-rep) points-gained))
+    })
+    )
+)
+
+(define-read-only (get-reputation-requirements)
+    (ok {
+        novice: REPUTATION-NOVICE,
+        apprentice: REPUTATION-APPRENTICE,
+        developer: REPUTATION-DEVELOPER,
+        expert: REPUTATION-EXPERT,
+        master: REPUTATION-MASTER
+    })
 )
 
 (begin (init-quality-thresholds))
