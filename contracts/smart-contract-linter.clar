@@ -299,6 +299,21 @@
     (ok (get-quality-level score))
 )
 
+(define-public (set-quality-threshold (level (string-ascii 20)) (min-score uint) (max-score uint))
+    (begin
+        (asserts! (is-eq tx-sender CONTRACT-OWNER) ERR-NOT-AUTHORIZED)
+        (asserts! (<= min-score max-score) ERR-INVALID-INPUT)
+        (asserts! (<= max-score u100) ERR-INVALID-INPUT)
+        (asserts! (>= min-score u0) ERR-INVALID-INPUT)
+        (map-set quality-thresholds { level: level } { min-score: min-score, max-score: max-score })
+        (ok true)
+    )
+)
+
+(define-read-only (get-quality-threshold (level (string-ascii 20)))
+    (map-get? quality-thresholds { level: level })
+)
+
 (define-read-only (get-platform-stats)
     (ok {
         total-lints: (var-get total-lints),
