@@ -12,6 +12,8 @@
 (define-constant REPUTATION-EXPERT u1500)
 (define-constant REPUTATION-MASTER u3000)
 
+(define-constant LEADERBOARD-SIZE u10)
+
 (define-data-var next-lint-id uint u1)
 (define-data-var total-lints uint u0)
 
@@ -71,7 +73,7 @@
 
 (define-map reputation-leaderboard
     { rank: uint }
-    { developer: principal, reputation-points: uint }
+    { developer: (optional principal), reputation-points: uint }
 )
 
 (define-map developer-badges
@@ -140,6 +142,180 @@
     "NOVICE"))))
 )
 
+(define-private (leaderboard-empty-entry)
+    { developer: none, reputation-points: u0 }
+)
+
+(define-private (get-leaderboard-entry (rank uint))
+    (default-to (leaderboard-empty-entry) (map-get? reputation-leaderboard { rank: rank }))
+)
+
+(define-private (should-place-leaderboard-entry
+    (entry { developer: (optional principal), reputation-points: uint })
+    (points uint))
+    (or (is-eq (get developer entry) none) (> points (get reputation-points entry)))
+)
+
+(define-private (clear-developer-from-leaderboard (developer principal))
+    (begin
+        (if (is-eq (get developer (get-leaderboard-entry u1)) (some developer))
+            (map-delete reputation-leaderboard { rank: u1 })
+            true)
+        (if (is-eq (get developer (get-leaderboard-entry u2)) (some developer))
+            (map-delete reputation-leaderboard { rank: u2 })
+            true)
+        (if (is-eq (get developer (get-leaderboard-entry u3)) (some developer))
+            (map-delete reputation-leaderboard { rank: u3 })
+            true)
+        (if (is-eq (get developer (get-leaderboard-entry u4)) (some developer))
+            (map-delete reputation-leaderboard { rank: u4 })
+            true)
+        (if (is-eq (get developer (get-leaderboard-entry u5)) (some developer))
+            (map-delete reputation-leaderboard { rank: u5 })
+            true)
+        (if (is-eq (get developer (get-leaderboard-entry u6)) (some developer))
+            (map-delete reputation-leaderboard { rank: u6 })
+            true)
+        (if (is-eq (get developer (get-leaderboard-entry u7)) (some developer))
+            (map-delete reputation-leaderboard { rank: u7 })
+            true)
+        (if (is-eq (get developer (get-leaderboard-entry u8)) (some developer))
+            (map-delete reputation-leaderboard { rank: u8 })
+            true)
+        (if (is-eq (get developer (get-leaderboard-entry u9)) (some developer))
+            (map-delete reputation-leaderboard { rank: u9 })
+            true)
+        (if (is-eq (get developer (get-leaderboard-entry u10)) (some developer))
+            (map-delete reputation-leaderboard { rank: u10 })
+            true)
+        true
+    )
+)
+
+(define-private (update-reputation-leaderboard (developer principal) (points uint))
+    (begin
+        (clear-developer-from-leaderboard developer)
+        (let (
+            (r1 (get-leaderboard-entry u1))
+            (r2 (get-leaderboard-entry u2))
+            (r3 (get-leaderboard-entry u3))
+            (r4 (get-leaderboard-entry u4))
+            (r5 (get-leaderboard-entry u5))
+            (r6 (get-leaderboard-entry u6))
+            (r7 (get-leaderboard-entry u7))
+            (r8 (get-leaderboard-entry u8))
+            (r9 (get-leaderboard-entry u9))
+            (r10 (get-leaderboard-entry u10))
+        )
+        (if (should-place-leaderboard-entry r1 points)
+            (begin
+                (map-set reputation-leaderboard { rank: u10 } r9)
+                (map-set reputation-leaderboard { rank: u9 } r8)
+                (map-set reputation-leaderboard { rank: u8 } r7)
+                (map-set reputation-leaderboard { rank: u7 } r6)
+                (map-set reputation-leaderboard { rank: u6 } r5)
+                (map-set reputation-leaderboard { rank: u5 } r4)
+                (map-set reputation-leaderboard { rank: u4 } r3)
+                (map-set reputation-leaderboard { rank: u3 } r2)
+                (map-set reputation-leaderboard { rank: u2 } r1)
+                (map-set reputation-leaderboard { rank: u1 } { developer: (some developer), reputation-points: points })
+                true
+            )
+            (if (should-place-leaderboard-entry r2 points)
+                (begin
+                    (map-set reputation-leaderboard { rank: u10 } r9)
+                    (map-set reputation-leaderboard { rank: u9 } r8)
+                    (map-set reputation-leaderboard { rank: u8 } r7)
+                    (map-set reputation-leaderboard { rank: u7 } r6)
+                    (map-set reputation-leaderboard { rank: u6 } r5)
+                    (map-set reputation-leaderboard { rank: u5 } r4)
+                    (map-set reputation-leaderboard { rank: u4 } r3)
+                    (map-set reputation-leaderboard { rank: u3 } r2)
+                    (map-set reputation-leaderboard { rank: u2 } { developer: (some developer), reputation-points: points })
+                    true
+                )
+                (if (should-place-leaderboard-entry r3 points)
+                    (begin
+                        (map-set reputation-leaderboard { rank: u10 } r9)
+                        (map-set reputation-leaderboard { rank: u9 } r8)
+                        (map-set reputation-leaderboard { rank: u8 } r7)
+                        (map-set reputation-leaderboard { rank: u7 } r6)
+                        (map-set reputation-leaderboard { rank: u6 } r5)
+                        (map-set reputation-leaderboard { rank: u5 } r4)
+                        (map-set reputation-leaderboard { rank: u4 } r3)
+                        (map-set reputation-leaderboard { rank: u3 } { developer: (some developer), reputation-points: points })
+                        true
+                    )
+                    (if (should-place-leaderboard-entry r4 points)
+                        (begin
+                            (map-set reputation-leaderboard { rank: u10 } r9)
+                            (map-set reputation-leaderboard { rank: u9 } r8)
+                            (map-set reputation-leaderboard { rank: u8 } r7)
+                            (map-set reputation-leaderboard { rank: u7 } r6)
+                            (map-set reputation-leaderboard { rank: u6 } r5)
+                            (map-set reputation-leaderboard { rank: u5 } r4)
+                            (map-set reputation-leaderboard { rank: u4 } { developer: (some developer), reputation-points: points })
+                            true
+                        )
+                        (if (should-place-leaderboard-entry r5 points)
+                            (begin
+                                (map-set reputation-leaderboard { rank: u10 } r9)
+                                (map-set reputation-leaderboard { rank: u9 } r8)
+                                (map-set reputation-leaderboard { rank: u8 } r7)
+                                (map-set reputation-leaderboard { rank: u7 } r6)
+                                (map-set reputation-leaderboard { rank: u6 } r5)
+                                (map-set reputation-leaderboard { rank: u5 } { developer: (some developer), reputation-points: points })
+                                true
+                            )
+                            (if (should-place-leaderboard-entry r6 points)
+                                (begin
+                                    (map-set reputation-leaderboard { rank: u10 } r9)
+                                    (map-set reputation-leaderboard { rank: u9 } r8)
+                                    (map-set reputation-leaderboard { rank: u8 } r7)
+                                    (map-set reputation-leaderboard { rank: u7 } r6)
+                                    (map-set reputation-leaderboard { rank: u6 } { developer: (some developer), reputation-points: points })
+                                    true
+                                )
+                                (if (should-place-leaderboard-entry r7 points)
+                                    (begin
+                                        (map-set reputation-leaderboard { rank: u10 } r9)
+                                        (map-set reputation-leaderboard { rank: u9 } r8)
+                                        (map-set reputation-leaderboard { rank: u8 } r7)
+                                        (map-set reputation-leaderboard { rank: u7 } { developer: (some developer), reputation-points: points })
+                                        true
+                                    )
+                                    (if (should-place-leaderboard-entry r8 points)
+                                        (begin
+                                            (map-set reputation-leaderboard { rank: u10 } r9)
+                                            (map-set reputation-leaderboard { rank: u9 } r8)
+                                            (map-set reputation-leaderboard { rank: u8 } { developer: (some developer), reputation-points: points })
+                                            true
+                                        )
+                                        (if (should-place-leaderboard-entry r9 points)
+                                            (begin
+                                                (map-set reputation-leaderboard { rank: u10 } r9)
+                                                (map-set reputation-leaderboard { rank: u9 } { developer: (some developer), reputation-points: points })
+                                                true
+                                            )
+                                            (if (should-place-leaderboard-entry r10 points)
+                                                (begin
+                                                    (map-set reputation-leaderboard { rank: u10 } { developer: (some developer), reputation-points: points })
+                                                    true
+                                                )
+                                                true
+                                            )
+                                        )
+                                    )
+                                )
+                            )
+                        )
+                    )
+                )
+            )
+        ))
+    )
+)
+
 (define-private (calculate-reputation-points (quality-score uint) (streak-bonus uint))
     (let (
         (base-points (if (>= quality-score u90) u50
@@ -200,6 +376,7 @@
             community-endorsements: (get community-endorsements current-rep)
         })
         (check-and-award-badges developer quality-score streak-bonus)
+        (update-reputation-leaderboard developer new-total-rep)
         new-total-rep
     ))
 )
@@ -366,8 +543,8 @@
 
 (define-public (endorse-developer (developer principal))
     (let (
-        (current-rep (default-to 
-            { total-reputation: u0, reputation-level: "NOVICE", badges-earned: u0, 
+        (current-rep (default-to
+            { total-reputation: u0, reputation-level: "NOVICE", badges-earned: u0,
               streak-count: u0, last-activity: u0, quality-bonus: u0, community-endorsements: u0 }
             (map-get? developer-reputation { developer: developer })
         ))
@@ -377,13 +554,22 @@
         (asserts! (not (is-eq tx-sender developer)) ERR-INVALID-INPUT)
         (asserts! (is-some endorser-rep) ERR-NOT-FOUND)
         (asserts! (>= (get total-reputation (unwrap-panic endorser-rep)) REPUTATION-DEVELOPER) ERR-INSUFFICIENT-REPUTATION)
-        
-        (map-set developer-reputation { developer: developer } 
-            (merge current-rep { 
-                community-endorsements: (+ (get community-endorsements current-rep) u1),
-                total-reputation: (+ (get total-reputation current-rep) u25)
-            }))
-        (ok true)
+
+        (let (
+            (new-total (+ (get total-reputation current-rep) u25))
+            (new-endorsements (+ (get community-endorsements current-rep) u1))
+            (new-level (get-reputation-level new-total))
+        )
+        (begin
+            (map-set developer-reputation { developer: developer }
+                (merge current-rep {
+                    community-endorsements: new-endorsements,
+                    total-reputation: new-total,
+                    reputation-level: new-level
+                }))
+            (update-reputation-leaderboard developer new-total)
+            (ok true)
+        ))
     ))
 )
 
@@ -396,10 +582,44 @@
 )
 
 (define-read-only (get-reputation-leaderboard (start-rank uint) (count uint))
-    (let (
-        (results (list))
+    (begin
+        (asserts! (is-eq start-rank u1) ERR-INVALID-INPUT)
+        (asserts! (is-eq count LEADERBOARD-SIZE) ERR-INVALID-INPUT)
+        (ok (list
+            (merge { rank: u1 } (get-leaderboard-entry u1))
+            (merge { rank: u2 } (get-leaderboard-entry u2))
+            (merge { rank: u3 } (get-leaderboard-entry u3))
+            (merge { rank: u4 } (get-leaderboard-entry u4))
+            (merge { rank: u5 } (get-leaderboard-entry u5))
+            (merge { rank: u6 } (get-leaderboard-entry u6))
+            (merge { rank: u7 } (get-leaderboard-entry u7))
+            (merge { rank: u8 } (get-leaderboard-entry u8))
+            (merge { rank: u9 } (get-leaderboard-entry u9))
+            (merge { rank: u10 } (get-leaderboard-entry u10))
+        ))
     )
-    (ok results)
+)
+
+(define-read-only (get-developer-leaderboard-rank (developer principal))
+    (ok
+        (if (is-eq (get developer (get-leaderboard-entry u1)) (some developer)) (some u1)
+        (if (is-eq (get developer (get-leaderboard-entry u2)) (some developer)) (some u2)
+        (if (is-eq (get developer (get-leaderboard-entry u3)) (some developer)) (some u3)
+        (if (is-eq (get developer (get-leaderboard-entry u4)) (some developer)) (some u4)
+        (if (is-eq (get developer (get-leaderboard-entry u5)) (some developer)) (some u5)
+        (if (is-eq (get developer (get-leaderboard-entry u6)) (some developer)) (some u6)
+        (if (is-eq (get developer (get-leaderboard-entry u7)) (some developer)) (some u7)
+        (if (is-eq (get developer (get-leaderboard-entry u8)) (some developer)) (some u8)
+        (if (is-eq (get developer (get-leaderboard-entry u9)) (some developer)) (some u9)
+        (if (is-eq (get developer (get-leaderboard-entry u10)) (some developer)) (some u10)
+        none)))))))))))
+)
+
+(define-read-only (get-leaderboard-entry-at-rank (rank uint))
+    (begin
+        (asserts! (>= rank u1) ERR-INVALID-INPUT)
+        (asserts! (<= rank LEADERBOARD-SIZE) ERR-INVALID-INPUT)
+        (ok (get-leaderboard-entry rank))
     )
 )
 
